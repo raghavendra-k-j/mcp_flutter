@@ -1,76 +1,156 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:mcp_app/database/data.dart';
-import 'package:mcp_app/screens/add_person/controller.dart';
+import 'package:mcp_app/screens/add_card/controller.dart';
+import 'package:mcp_app/screens/ocr/view.dart';
+import 'package:mcp_app/widgets/voice_button.dart';
 
+import '../../util/logger.dart';
 import '../../values/colors.dart';
 import '../../values/styles.dart';
 
 class AddCard extends StatelessWidget {
   AddCard({super.key});
 
-  final AddPersonController addPersonController = Get.put(AddPersonController());
+  final AddCardController addPersonController = Get.put(AddCardController());
 
-
-  Future<void> _onPersonAdded(BuildContext buildContext) async {
-    Person? person = await addPersonController.addPerson(buildContext);
-    if(person != null) {
-      Get.back(result: person, );
+  _onCardAdded(BuildContext buildContext) async {
+    MCPCard? mcpCard = await addPersonController.addMCPCard(buildContext);
+    logd("_onCardAdded: $mcpCard");
+    if (mcpCard != null) {
+      Get.back(
+        result: mcpCard,
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       appBar: AppBar(
-        centerTitle: true,
+        centerTitle: false,
         iconTheme: const IconThemeData(color: onSurfaceColor),
         backgroundColor: Colors.white,
         elevation: 0.5,
         actions: [
           Obx(() => IconButton(
-            color: addPersonController.listenInEnglish.value ? Theme.of(context).primaryColor : surfaceColor,
-            onPressed: () {
-              addPersonController.listenInEnglish.toggle();
-            },
-            icon: const Icon(Icons.abc),
-          )),
+                color: !addPersonController.isLocaleEnglish.value
+                    ? onSurfaceMediumColor
+                    : Theme.of(context).primaryColor,
+                onPressed: () {
+                  addPersonController.isLocaleEnglish.toggle();
+                  var kannadaLocale = const Locale('kn', 'IN');
+                  var englishLocale = const Locale('en', 'IN');
+                  if(addPersonController.isLocaleEnglish.value) {
+                    Get.updateLocale(kannadaLocale);
+                  }
+                  else {
+                    Get.updateLocale(englishLocale);
+                  }
+                },
+                icon: const Icon(Icons.translate),
+              )),
           IconButton(
-              onPressed: () => _onPersonAdded(context),
-              icon: const Icon(Icons.done)),
+            onPressed: () async {
+              Map<String, String>? extractedData =
+                  await Get.to(() => const AadhaarScanningScreen());
+              if (extractedData != null && extractedData.isNotEmpty) {
+                if (extractedData.containsKey("Name")) {
+                  addPersonController.motherNameEditingController.text =
+                      extractedData['Name']!;
+                }
+              }
+            },
+            icon: const Icon(
+              Icons.document_scanner_outlined,
+              color: onSurfaceMediumColor,
+            ),
+          ),
+          IconButton(
+            onPressed: () => _onCardAdded(context),
+            icon: Icon(
+              Icons.done,
+              color: primary,
+            ),
+          ),
         ],
-        title: const Text(
-          "Add Card",
-          style: TextStyle(color: onSurfaceColor, fontWeight: FontWeight.bold),
+        title: Text(
+          "new_registration".tr,
+          style: const TextStyle(
+            color: onSurfaceColor,
+            fontWeight: FontWeight.normal,
+          ),
         ),
       ),
-      body: const AddScreenBodyContent(),
+      body: AddScreenBodyContent(),
     );
   }
 }
 
 class AddScreenBodyContent extends StatelessWidget {
-  const AddScreenBodyContent({super.key});
+  AddScreenBodyContent({super.key});
+
+  final AddCardController addPersonController = Get.put(AddCardController());
 
   @override
   Widget build(BuildContext context) {
-    return const SizedBox(
+    return SizedBox(
       width: double.maxFinite,
       height: double.maxFinite,
-      child: SingleChildScrollView(
-        child: Form(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AddPersonBasicInformation(),
-              AddPersonHealthDetails(),
-              AddPersonObstetric(),
-              AddPersonBankDetails(),
-            ],
+      child: Column(
+        children: [
+          Obx(() {
+            if (addPersonController.errorMessage.value.isNotEmpty) {
+              return Container(
+                width: double.infinity,
+                color: const Color.fromARGB(255, 255, 183, 0),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        addPersonController.errorMessage.value,
+                        style: const TextStyle(
+                          color: surfaceColor,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.close,
+                        color: surfaceColor,
+                      ),
+                      onPressed: () {
+                        addPersonController.errorMessage.value = '';
+                      },
+                    ),
+                  ],
+                ),
+              );
+            } else {
+              return Container();
+            }
+          }),
+          const Expanded(
+            flex: 1,
+            child: SingleChildScrollView(
+              child: Form(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AddPersonBasicInformation(),
+                    AddPersonHealthDetails(),
+                    AddPersonObstetric(),
+                    AddPersonBankDetails(),
+                  ],
+                ),
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -81,7 +161,7 @@ class AddPersonBasicInformation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    AddPersonController addPersonController = Get.find();
+    AddCardController addPersonController = Get.find();
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
       child: Container(
@@ -99,53 +179,57 @@ class AddPersonBasicInformation extends StatelessWidget {
               child: const Text(
                 "Basic Information",
                 style: TextStyle(
-                  color: Colors.black,
+                  color: onSurfaceFormSectionLabel,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
               ),
             ),
-            // Mothers Name
+            // Wife's Name
             Container(
               decoration: const BoxDecoration(border: FormStyles.borderBottom),
               padding: const EdgeInsets.fromLTRB(16, 1, 0, 1),
               child: Row(
                 mainAxisSize: MainAxisSize.max,
                 children: [
-                  const Text(
-                    "Mother's Name",
-                    style: Styles.textStyleFormLabel,
+                  Row(
+                    children: [
+                      Text(
+                        "mother_name".tr,
+                        style: Styles.textStyleFormLabel,
+                      ),
+                      const Text(
+                        "*",
+                        style: TextStyle(
+                          color: Colors.red,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(
                     width: 2,
                   ),
                   Expanded(
                     child: TextFormField(
+                      textCapitalization: TextCapitalization.words,
+                      keyboardType: TextInputType.name,
+                      inputFormatters: [LengthLimitingTextInputFormatter(30)],
                       controller:
                           addPersonController.motherNameEditingController,
                       textAlign: TextAlign.end,
                       decoration: InputDecoration(
-                        suffixIcon: IconButton(
-                          color: onSurfaceLightColor,
-                          onPressed: () {
-                            addPersonController.toggleListening(
-                                addPersonController
-                                    .motherNameEditingController);
-                          },
-                          icon: Obx(
-                            () => Icon(
-                              (addPersonController.isListening.value == true &&
-                                      addPersonController
-                                              .activeSpeechRecognitionController ==
-                                          addPersonController
-                                              .motherNameEditingController)
-                                  ? Icons.mic
-                                  : Icons.mic_none,
-                            ),
-                          ),
-                        ),
+                        suffixIcon: Obx(() => VoiceInputButton(
+                              onPressed: () {
+                                addPersonController.toggleListening(
+                                    addPersonController
+                                        .motherNameEditingController);
+                              },
+                              isListening: addPersonController
+                                  .isSpeechRecognitionActive(addPersonController
+                                      .motherNameEditingController),
+                            )),
                         hintStyle: Styles.textStyleHint,
-                        hintText: "Enter Mother's Name",
+                        hintText: "Enter Wife's Name",
                         border: InputBorder.none,
                       ),
                     ),
@@ -153,46 +237,49 @@ class AddPersonBasicInformation extends StatelessWidget {
                 ],
               ),
             ),
-            // Mothers Age
+            // Wife's Age
             Container(
               decoration: const BoxDecoration(border: FormStyles.borderBottom),
               padding: const EdgeInsets.fromLTRB(16, 1, 0, 1),
               child: Row(
                 mainAxisSize: MainAxisSize.max,
                 children: [
-                  const Text(
-                    "Mother's Age",
-                    style: Styles.textStyleFormLabel,
+                  Row(
+                    children: [
+                      Text(
+                        "mother_age".tr,
+                        style: Styles.textStyleFormLabel,
+                      ),
+                      const Text(
+                        "*",
+                        style: TextStyle(
+                          color: Colors.red,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(
                     width: 2,
                   ),
                   Expanded(
                     child: TextFormField(
+                      keyboardType: const TextInputType.numberWithOptions(),
                       controller:
                           addPersonController.motherAgeEditingController,
                       textAlign: TextAlign.end,
                       decoration: InputDecoration(
-                        suffixIcon: IconButton(
-                          color: onSurfaceLightColor,
-                          onPressed: () {
-                            addPersonController.toggleListening(
-                                addPersonController.motherAgeEditingController);
-                          },
-                          icon: Obx(
-                            () => Icon(
-                              (addPersonController.isListening.value == true &&
-                                      addPersonController
-                                              .activeSpeechRecognitionController ==
-                                          addPersonController
-                                              .motherAgeEditingController)
-                                  ? Icons.mic
-                                  : Icons.mic_none,
-                            ),
-                          ),
-                        ),
+                        suffixIcon: Obx(() => VoiceInputButton(
+                              onPressed: () {
+                                addPersonController.toggleListening(
+                                    addPersonController
+                                        .motherAgeEditingController);
+                              },
+                              isListening: addPersonController
+                                  .isSpeechRecognitionActive(addPersonController
+                                      .motherAgeEditingController),
+                            )),
                         hintStyle: Styles.textStyleHint,
-                        hintText: "Enter Mother's Age",
+                        hintText: "Enter Wife's Age",
                         border: InputBorder.none,
                       ),
                     ),
@@ -200,15 +287,15 @@ class AddPersonBasicInformation extends StatelessWidget {
                 ],
               ),
             ),
-            // Mothers Mobile
+            // Wife's Mobile
             Container(
               decoration: const BoxDecoration(border: FormStyles.borderBottom),
               padding: const EdgeInsets.fromLTRB(16, 1, 0, 1),
               child: Row(
                 mainAxisSize: MainAxisSize.max,
                 children: [
-                  const Text(
-                    "Mother's Mobile",
+                  Text(
+                    "mother_mobile".tr,
                     style: Styles.textStyleFormLabel,
                   ),
                   const SizedBox(
@@ -216,31 +303,24 @@ class AddPersonBasicInformation extends StatelessWidget {
                   ),
                   Expanded(
                     child: TextFormField(
+                      inputFormatters: [LengthLimitingTextInputFormatter(10)],
                       controller: addPersonController
                           .motherMobileNumberEditingController,
                       textAlign: TextAlign.end,
+                      keyboardType: const TextInputType.numberWithOptions(),
                       decoration: InputDecoration(
-                        suffixIcon: IconButton(
-                          color: onSurfaceLightColor,
-                          onPressed: () {
-                            addPersonController.toggleListening(
-                                addPersonController
-                                    .motherMobileNumberEditingController);
-                          },
-                          icon: Obx(
-                            () => Icon(
-                              (addPersonController.isListening.value == true &&
-                                      addPersonController
-                                              .activeSpeechRecognitionController ==
-                                          addPersonController
-                                              .motherMobileNumberEditingController)
-                                  ? Icons.mic
-                                  : Icons.mic_none,
-                            ),
-                          ),
-                        ),
+                        suffixIcon: Obx(() => VoiceInputButton(
+                              onPressed: () {
+                                addPersonController.toggleListening(
+                                    addPersonController
+                                        .motherMobileNumberEditingController);
+                              },
+                              isListening: addPersonController
+                                  .isSpeechRecognitionActive(addPersonController
+                                      .motherMobileNumberEditingController),
+                            )),
                         hintStyle: Styles.textStyleHint,
-                        hintText: "Enter Mother's Mobile",
+                        hintText: "Enter Wife's Mobile",
                         border: InputBorder.none,
                       ),
                     ),
@@ -248,47 +328,51 @@ class AddPersonBasicInformation extends StatelessWidget {
                 ],
               ),
             ),
-            // Father Name
+            // Husband Name
             Container(
               decoration: const BoxDecoration(border: FormStyles.borderBottom),
               padding: const EdgeInsets.fromLTRB(16, 1, 0, 1),
               child: Row(
                 mainAxisSize: MainAxisSize.max,
                 children: [
-                  const Text(
-                    "Father's Name",
-                    style: Styles.textStyleFormLabel,
+                  Row(
+                    children: [
+                      Text(
+                        "father_name".tr,
+                        style: Styles.textStyleFormLabel,
+                      ),
+                      Text(
+                        "*",
+                        style: TextStyle(
+                          color: Colors.red,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(
                     width: 2,
                   ),
                   Expanded(
                     child: TextFormField(
+                      keyboardType: TextInputType.name,
+                      textCapitalization: TextCapitalization.words,
+                      inputFormatters: [LengthLimitingTextInputFormatter(30)],
                       controller:
                           addPersonController.fatherNameEditingController,
                       textAlign: TextAlign.end,
                       decoration: InputDecoration(
-                        suffixIcon: IconButton(
-                          color: onSurfaceLightColor,
-                          onPressed: () {
-                            addPersonController.toggleListening(
-                                addPersonController
-                                    .fatherNameEditingController);
-                          },
-                          icon: Obx(
-                            () => Icon(
-                              (addPersonController.isListening.value == true &&
-                                      addPersonController
-                                              .activeSpeechRecognitionController ==
-                                          addPersonController
-                                              .fatherNameEditingController)
-                                  ? Icons.mic
-                                  : Icons.mic_none,
-                            ),
-                          ),
-                        ),
+                        suffixIcon: Obx(() => VoiceInputButton(
+                              onPressed: () {
+                                addPersonController.toggleListening(
+                                    addPersonController
+                                        .fatherNameEditingController);
+                              },
+                              isListening: addPersonController
+                                  .isSpeechRecognitionActive(addPersonController
+                                      .fatherNameEditingController),
+                            )),
                         hintStyle: Styles.textStyleHint,
-                        hintText: "Enter Father's Name",
+                        hintText: "Enter Husband's Name",
                         border: InputBorder.none,
                       ),
                     ),
@@ -296,15 +380,15 @@ class AddPersonBasicInformation extends StatelessWidget {
                 ],
               ),
             ),
-            // Father Mobile
+            // Husband Mobile
             Container(
               decoration: const BoxDecoration(border: FormStyles.borderBottom),
               padding: const EdgeInsets.fromLTRB(16, 1, 0, 1),
               child: Row(
                 mainAxisSize: MainAxisSize.max,
                 children: [
-                  const Text(
-                    "Father's Mobile",
+                  Text(
+                    "father_mobile".tr,
                     style: Styles.textStyleFormLabel,
                   ),
                   const SizedBox(
@@ -312,31 +396,24 @@ class AddPersonBasicInformation extends StatelessWidget {
                   ),
                   Expanded(
                     child: TextFormField(
+                      keyboardType: const TextInputType.numberWithOptions(),
+                      inputFormatters: [LengthLimitingTextInputFormatter(10)],
                       controller: addPersonController
                           .fatherMobileNumberEditingController,
                       textAlign: TextAlign.end,
                       decoration: InputDecoration(
-                        suffixIcon: IconButton(
-                          color: onSurfaceLightColor,
-                          onPressed: () {
-                            addPersonController.toggleListening(
-                                addPersonController
-                                    .fatherMobileNumberEditingController);
-                          },
-                          icon: Obx(
-                            () => Icon(
-                              (addPersonController.isListening.value == true &&
-                                      addPersonController
-                                              .activeSpeechRecognitionController ==
-                                          addPersonController
-                                              .fatherMobileNumberEditingController)
-                                  ? Icons.mic
-                                  : Icons.mic_none,
-                            ),
-                          ),
-                        ),
+                        suffixIcon: Obx(() => VoiceInputButton(
+                              onPressed: () {
+                                addPersonController.toggleListening(
+                                    addPersonController
+                                        .fatherMobileNumberEditingController);
+                              },
+                              isListening: addPersonController
+                                  .isSpeechRecognitionActive(addPersonController
+                                      .fatherMobileNumberEditingController),
+                            )),
                         hintStyle: Styles.textStyleHint,
-                        hintText: "Enter Father's Mobile",
+                        hintText: "Enter Husband's Mobile",
                         border: InputBorder.none,
                       ),
                     ),
@@ -356,28 +433,20 @@ class AddPersonBasicInformation extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          "Address",
+                        Text(
+                          "address".tr,
                           style: Styles.textStyleFormLabel,
                         ),
-                        IconButton(
-                          color: onSurfaceLightColor,
-                          onPressed: () {
-                            addPersonController.toggleListening(
-                                addPersonController.addressEditingController);
-                          },
-                          icon: Obx(
-                            () => Icon(
-                              (addPersonController.isListening.value == true &&
-                                      addPersonController
-                                              .activeSpeechRecognitionController ==
-                                          addPersonController
-                                              .addressEditingController)
-                                  ? Icons.mic
-                                  : Icons.mic_none,
-                            ),
-                          ),
-                        )
+                        Obx(() => VoiceInputButton(
+                              onPressed: () {
+                                addPersonController.toggleListening(
+                                    addPersonController
+                                        .addressEditingController);
+                              },
+                              isListening: addPersonController
+                                  .isSpeechRecognitionActive(addPersonController
+                                      .addressEditingController),
+                            )),
                       ],
                     ),
                   ),
@@ -386,11 +455,13 @@ class AddPersonBasicInformation extends StatelessWidget {
                     child: Builder(
                       builder: (context) {
                         return TextFormField(
+                          textCapitalization: TextCapitalization.sentences,
                           controller:
                               addPersonController.addressEditingController,
                           maxLines: 3,
-                          minLines: 3,
+                          minLines: 2,
                           maxLength: 300,
+                          keyboardType: TextInputType.multiline,
                           maxLengthEnforcement: MaxLengthEnforcement.enforced,
                           textAlign: TextAlign.start,
                           decoration: const InputDecoration(
@@ -415,8 +486,8 @@ class AddPersonBasicInformation extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.max,
                 children: [
-                  const Text(
-                    "MCTS/RCH ID",
+                  Text(
+                    "mctc_or_rch_id".tr,
                     style: Styles.textStyleFormLabel,
                   ),
                   const SizedBox(
@@ -424,41 +495,13 @@ class AddPersonBasicInformation extends StatelessWidget {
                   ),
                   Expanded(
                     child: TextFormField(
+                      readOnly: true,
                       controller:
                           addPersonController.mctsOrRchIdEditingController,
                       textAlign: TextAlign.end,
                       decoration: const InputDecoration(
                         hintStyle: Styles.textStyleHint,
                         hintText: "Enter MCTS/RCH ID",
-                        border: InputBorder.none,
-                      ),
-                    ),
-                  )
-                ],
-              ),
-            ),
-            // MCH ID
-            Container(
-              decoration: const BoxDecoration(border: FormStyles.borderBottom),
-              padding: const EdgeInsets.fromLTRB(16, 1, 16, 2),
-              child: Row(
-                mainAxisSize: MainAxisSize.max,
-                children: [
-                  const Text(
-                    "MCH ID",
-                    style: Styles.textStyleFormLabel,
-                  ),
-                  const SizedBox(
-                    width: 2,
-                  ),
-                  Expanded(
-                    child: TextFormField(
-                      controller:
-                      addPersonController.mchIdEditingController,
-                      textAlign: TextAlign.end,
-                      decoration: const InputDecoration(
-                        hintStyle: Styles.textStyleHint,
-                        hintText: "Enter MCH ID",
                         border: InputBorder.none,
                       ),
                     ),
@@ -478,7 +521,7 @@ class AddPersonBankDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    AddPersonController addPersonController = Get.find();
+    AddCardController addPersonController = Get.find();
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
       child: Container(
@@ -496,7 +539,7 @@ class AddPersonBankDetails extends StatelessWidget {
               child: const Text(
                 "Bank Details",
                 style: TextStyle(
-                  color: Colors.black,
+                  color: onSurfaceFormSectionLabel,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
@@ -509,8 +552,8 @@ class AddPersonBankDetails extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.max,
                 children: [
-                  const Text(
-                    "Bank Name",
+                  Text(
+                    "bank_name".tr,
                     style: Styles.textStyleFormLabel,
                   ),
                   const SizedBox(
@@ -518,27 +561,22 @@ class AddPersonBankDetails extends StatelessWidget {
                   ),
                   Expanded(
                     child: TextFormField(
+                      keyboardType: TextInputType.name,
+                      textCapitalization: TextCapitalization.words,
+                      inputFormatters: [LengthLimitingTextInputFormatter(30)],
                       controller: addPersonController.bankNameEditingController,
                       textAlign: TextAlign.end,
                       decoration: InputDecoration(
-                        suffixIcon: IconButton(
-                          color: onSurfaceLightColor,
-                          onPressed: () {
-                            addPersonController.toggleListening(
-                                addPersonController.bankNameEditingController);
-                          },
-                          icon: Obx(
-                            () => Icon(
-                              (addPersonController.isListening.value == true &&
-                                      addPersonController
-                                              .activeSpeechRecognitionController ==
-                                          addPersonController
-                                              .bankNameEditingController)
-                                  ? Icons.mic
-                                  : Icons.mic_none,
-                            ),
-                          ),
-                        ),
+                        suffixIcon: Obx(() => VoiceInputButton(
+                              onPressed: () {
+                                addPersonController.toggleListening(
+                                    addPersonController
+                                        .bankNameEditingController);
+                              },
+                              isListening: addPersonController
+                                  .isSpeechRecognitionActive(addPersonController
+                                      .bankNameEditingController),
+                            )),
                         hintStyle: Styles.textStyleHint,
                         hintText: "Enter Bank Name",
                         border: InputBorder.none,
@@ -555,8 +593,8 @@ class AddPersonBankDetails extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.max,
                 children: [
-                  const Text(
-                    "Branch Name",
+                  Text(
+                    "branch_name".tr,
                     style: Styles.textStyleFormLabel,
                   ),
                   const SizedBox(
@@ -564,29 +602,23 @@ class AddPersonBankDetails extends StatelessWidget {
                   ),
                   Expanded(
                     child: TextFormField(
+                      keyboardType: TextInputType.name,
+                      textCapitalization: TextCapitalization.words,
+                      inputFormatters: [LengthLimitingTextInputFormatter(30)],
                       controller:
                           addPersonController.branchNameEditingController,
                       textAlign: TextAlign.end,
                       decoration: InputDecoration(
-                        suffixIcon: IconButton(
-                          color: onSurfaceLightColor,
-                          onPressed: () {
-                            addPersonController.toggleListening(
-                                addPersonController
-                                    .branchNameEditingController);
-                          },
-                          icon: Obx(
-                            () => Icon(
-                              (addPersonController.isListening.value == true &&
-                                      addPersonController
-                                              .activeSpeechRecognitionController ==
-                                          addPersonController
-                                              .branchNameEditingController)
-                                  ? Icons.mic
-                                  : Icons.mic_none,
-                            ),
-                          ),
-                        ),
+                        suffixIcon: Obx(() => VoiceInputButton(
+                              onPressed: () {
+                                addPersonController.toggleListening(
+                                    addPersonController
+                                        .branchNameEditingController);
+                              },
+                              isListening: addPersonController
+                                  .isSpeechRecognitionActive(addPersonController
+                                      .branchNameEditingController),
+                            )),
                         hintStyle: Styles.textStyleHint,
                         hintText: "Enter Branch Name",
                         border: InputBorder.none,
@@ -603,8 +635,8 @@ class AddPersonBankDetails extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.max,
                 children: [
-                  const Text(
-                    "Account Number",
+                  Text(
+                    "account_number".tr,
                     style: Styles.textStyleFormLabel,
                   ),
                   const SizedBox(
@@ -612,29 +644,24 @@ class AddPersonBankDetails extends StatelessWidget {
                   ),
                   Expanded(
                     child: TextFormField(
+                      keyboardType: const TextInputType.numberWithOptions(),
+                      inputFormatters: [
+                        LengthLimitingTextInputFormatter(20),
+                      ],
                       controller:
                           addPersonController.accountNumberEditingController,
                       textAlign: TextAlign.end,
                       decoration: InputDecoration(
-                        suffixIcon: IconButton(
-                          color: onSurfaceLightColor,
-                          onPressed: () {
-                            addPersonController.toggleListening(
-                                addPersonController
-                                    .accountNumberEditingController);
-                          },
-                          icon: Obx(
-                            () => Icon(
-                              (addPersonController.isListening.value == true &&
-                                      addPersonController
-                                              .activeSpeechRecognitionController ==
-                                          addPersonController
-                                              .accountNumberEditingController)
-                                  ? Icons.mic
-                                  : Icons.mic_none,
-                            ),
-                          ),
-                        ),
+                        suffixIcon: Obx(() => VoiceInputButton(
+                              onPressed: () {
+                                addPersonController.toggleListening(
+                                    addPersonController
+                                        .accountNumberEditingController);
+                              },
+                              isListening: addPersonController
+                                  .isSpeechRecognitionActive(addPersonController
+                                      .accountNumberEditingController),
+                            )),
                         hintStyle: Styles.textStyleHint,
                         hintText: "Enter Account Number",
                         border: InputBorder.none,
@@ -651,8 +678,8 @@ class AddPersonBankDetails extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.max,
                 children: [
-                  const Text(
-                    "IFSC Code",
+                  Text(
+                    "ifsc_code".tr,
                     style: Styles.textStyleFormLabel,
                   ),
                   const SizedBox(
@@ -660,8 +687,11 @@ class AddPersonBankDetails extends StatelessWidget {
                   ),
                   Expanded(
                     child: TextFormField(
+                      keyboardType: TextInputType.text,
+                      textCapitalization: TextCapitalization.characters,
                       controller: addPersonController.ifscCodeEditingController,
                       textAlign: TextAlign.end,
+                      inputFormatters: [LengthLimitingTextInputFormatter(15)],
                       decoration: const InputDecoration(
                         hintStyle: Styles.textStyleHint,
                         hintText: "Enter IFSC Code",
@@ -684,7 +714,7 @@ class AddPersonHealthDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    AddPersonController addPersonController = Get.find();
+    AddCardController addPersonController = Get.find();
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
       child: Container(
@@ -702,7 +732,7 @@ class AddPersonHealthDetails extends StatelessWidget {
               child: const Text(
                 "Health Details",
                 style: TextStyle(
-                  color: Colors.black,
+                  color: onSurfaceFormSectionLabel,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
@@ -715,8 +745,8 @@ class AddPersonHealthDetails extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.max,
                 children: [
-                  const Text(
-                    "Hemoglobin",
+                  Text(
+                    "hemoglobin".tr,
                     style: Styles.textStyleFormLabel,
                   ),
                   const SizedBox(
@@ -727,10 +757,61 @@ class AddPersonHealthDetails extends StatelessWidget {
                       controller:
                           addPersonController.hemoglobinEditingController,
                       textAlign: TextAlign.end,
-                      decoration: const InputDecoration(
+                      inputFormatters: [LengthLimitingTextInputFormatter(4)],
+                      keyboardType: const TextInputType.numberWithOptions(
+                          signed: false, decimal: true),
+                      decoration: InputDecoration(
                         hintStyle: Styles.textStyleHint,
                         hintText: "Enter Hemoglobin Level",
                         border: InputBorder.none,
+                        suffixIcon: Obx(() => VoiceInputButton(
+                              onPressed: () {
+                                addPersonController.toggleListening(
+                                    addPersonController
+                                        .hemoglobinEditingController);
+                              },
+                              isListening: addPersonController
+                                  .isSpeechRecognitionActive(addPersonController
+                                      .hemoglobinEditingController),
+                            )),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // BP
+            Container(
+              decoration: const BoxDecoration(border: FormStyles.borderBottom),
+              padding: const EdgeInsets.fromLTRB(16, 1, 16, 2),
+              child: Row(
+                mainAxisSize: MainAxisSize.max,
+                children: [
+                  Text(
+                    "blood_pressure".tr,
+                    style: Styles.textStyleFormLabel,
+                  ),
+                  const SizedBox(
+                    width: 2,
+                  ),
+                  Expanded(
+                    child: TextFormField(
+                      inputFormatters: [LengthLimitingTextInputFormatter(7)],
+                      controller: addPersonController.bpEditingController,
+                      textAlign: TextAlign.end,
+                      decoration: InputDecoration(
+                        hintStyle: Styles.textStyleHint,
+                        hintText: "Enter Blood Pressure",
+                        border: InputBorder.none,
+                        suffixIcon: Obx(() => VoiceInputButton(
+                              onPressed: () {
+                                addPersonController.toggleListening(
+                                    addPersonController.bpEditingController);
+                              },
+                              isListening:
+                                  addPersonController.isSpeechRecognitionActive(
+                                      addPersonController.bpEditingController),
+                            )),
                       ),
                     ),
                   ),
@@ -746,25 +827,26 @@ class AddPersonHealthDetails extends StatelessWidget {
                     children: [
                       // Diabetes
                       Obx(
-                            () => CheckboxListTile(
+                        () => CheckboxListTile(
                           controlAffinity: ListTileControlAffinity.leading,
                           value: addPersonController.isDiabetesChecked.value,
                           onChanged: (newValue) {
-                            addPersonController.isDiabetesChecked.value = newValue!;
+                            addPersonController.isDiabetesChecked.value =
+                                newValue!;
                           },
-                          title: const Text("Diabetes"),
+                          title: Text("diabetes".tr),
                         ),
                       ),
 
                       // Blood Pressure (BP)
                       Obx(
-                            () => CheckboxListTile(
+                        () => CheckboxListTile(
                           controlAffinity: ListTileControlAffinity.leading,
                           value: addPersonController.isBPChecked.value,
                           onChanged: (newValue) {
                             addPersonController.isBPChecked.value = newValue!;
                           },
-                          title: const Text("BP"),
+                          title: Text("bp".tr),
                         ),
                       ),
                     ],
@@ -776,25 +858,27 @@ class AddPersonHealthDetails extends StatelessWidget {
                     children: [
                       // Anemia
                       Obx(
-                            () => CheckboxListTile(
+                        () => CheckboxListTile(
                           controlAffinity: ListTileControlAffinity.leading,
                           value: addPersonController.isAnemiaChecked.value,
                           onChanged: (newValue) {
-                            addPersonController.isAnemiaChecked.value = newValue!;
+                            addPersonController.isAnemiaChecked.value =
+                                newValue!;
                           },
-                          title: const Text("Anemia"),
+                          title: Text("anemia".tr),
                         ),
                       ),
 
                       // Thyroid
                       Obx(
-                            () => CheckboxListTile(
+                        () => CheckboxListTile(
                           controlAffinity: ListTileControlAffinity.leading,
                           value: addPersonController.isThyroidChecked.value,
                           onChanged: (newValue) {
-                            addPersonController.isThyroidChecked.value = newValue!;
+                            addPersonController.isThyroidChecked.value =
+                                newValue!;
                           },
-                          title: const Text("Thyroid"),
+                          title: Text("thyroid".tr),
                         ),
                       ),
                     ],
@@ -802,7 +886,6 @@ class AddPersonHealthDetails extends StatelessWidget {
                 ),
               ],
             )
-
           ],
         ),
       ),
@@ -813,9 +896,35 @@ class AddPersonHealthDetails extends StatelessWidget {
 class AddPersonObstetric extends StatelessWidget {
   const AddPersonObstetric({super.key});
 
+  void openDatePicker(BuildContext context, TextEditingController controller) async {
+    DateTime initialDate = DateTime.now();
+
+    final String currentText = controller.text;
+    if(currentText.isNotEmpty) {
+      final DateFormat formatter = DateFormat('dd-MM-yyyy');
+      final DateTime currentDate = formatter.parseLoose(currentText);
+      initialDate = currentDate;
+    }
+
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2025),
+    );
+
+    if (pickedDate != null) {
+      final DateFormat formatter = DateFormat('dd-MM-yyyy');
+      final String formattedDate = formatter.format(pickedDate);
+      if (formattedDate != controller.text) {
+        controller.text = formattedDate;
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    AddPersonController addPersonController = Get.find();
+    AddCardController addPersonController = Get.find();
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
       child: Container(
@@ -833,7 +942,7 @@ class AddPersonObstetric extends StatelessWidget {
               child: const Text(
                 "Obstetric History",
                 style: TextStyle(
-                  color: Colors.black,
+                  color: onSurfaceFormSectionLabel,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
@@ -846,8 +955,8 @@ class AddPersonObstetric extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.max,
                 children: [
-                  const Text(
-                    "Last Menstrual Period (LMP)",
+                  Text(
+                    "last_menstrual_period".tr,
                     style: Styles.textStyleFormLabel,
                   ),
                   const SizedBox(
@@ -855,11 +964,15 @@ class AddPersonObstetric extends StatelessWidget {
                   ),
                   Expanded(
                     child: TextFormField(
+                      readOnly: true,
+                      onTap: () {
+                        openDatePicker(context, addPersonController.lmpEditingController);
+                      },
                       controller: addPersonController.lmpEditingController,
                       textAlign: TextAlign.end,
                       decoration: const InputDecoration(
                         hintStyle: Styles.textStyleHint,
-                        hintText: "Enter LMP",
+                        hintText: "Select LMP",
                         border: InputBorder.none,
                       ),
                     ),
@@ -874,8 +987,8 @@ class AddPersonObstetric extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.max,
                 children: [
-                  const Text(
-                    "Estimated Delivery Date (EDD)",
+                  Text(
+                    "estimated_delivery_date".tr,
                     style: Styles.textStyleFormLabel,
                   ),
                   const SizedBox(
@@ -883,11 +996,15 @@ class AddPersonObstetric extends StatelessWidget {
                   ),
                   Expanded(
                     child: TextFormField(
+                      readOnly: true,
+                      onTap: () {
+                        openDatePicker(context, addPersonController.eddEditingController);
+                      },
                       controller: addPersonController.eddEditingController,
                       textAlign: TextAlign.end,
                       decoration: const InputDecoration(
                         hintStyle: Styles.textStyleHint,
-                        hintText: "Enter EDD",
+                        hintText: "Select EDD",
                         border: InputBorder.none,
                       ),
                     ),

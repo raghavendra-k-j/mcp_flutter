@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get/get_core/src/get_main.dart';
-import 'package:get/get_navigation/get_navigation.dart';
 import 'package:intl/intl.dart';
 import 'package:mcp_app/database/data.dart';
 import 'package:mcp_app/screens/basic_details/birth.dart';
@@ -13,13 +11,11 @@ import 'package:mcp_app/values/colors.dart';
 
 class CardDetailsScreen extends StatelessWidget {
 
-  final Person person;
+  final MCPCard person;
 
   CardDetailsScreen({super.key, required this.person}) {
     Get.put(CardDetailsController(person));
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -74,8 +70,12 @@ class CardHeader extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
+            decoration: const BoxDecoration(
+              color: surfaceColor
+            ),
             padding: const EdgeInsets.all(8),
             child: Image.asset(
               'assets/images/profile_placeholder.png',
@@ -88,16 +88,22 @@ class CardHeader extends StatelessWidget {
             children: [
               Text(
               'CardID: MCPC${cardDetailsController.person.id.toString().padLeft(4, '0')}',
+                style: TextStyle(
+                    color: primary, fontWeight: FontWeight.bold),
+              ),
+              Text(
+              'Name: ${cardDetailsController.person.motherName}',
                 style: const TextStyle(
-                    color: onSurfaceColor, fontWeight: FontWeight.bold),
+                    color: onSurfaceMediumColor, fontWeight: FontWeight.bold),
               ),
               Text("Created Date: ${DateFormat('MMM dd, yyyy').format(DateTime.now())}"),
               Padding(
-                padding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
+                padding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
                 child: Row(
                   children: [
                     FilledButton(
                         style: ButtonStyle(
+                          minimumSize: MaterialStateProperty.all<Size>(const Size(30, 30)),
                             shape: MaterialStateProperty.all<OutlinedBorder>(
                                 const RoundedRectangleBorder(
                                     borderRadius:
@@ -110,6 +116,7 @@ class CardHeader extends StatelessWidget {
                       margin: const EdgeInsets.fromLTRB(8, 0, 0, 0),
                       child: FilledButton(
                           style: ButtonStyle(
+                              minimumSize: MaterialStateProperty.all<Size>(const Size(30, 30)),
                               shape: MaterialStateProperty.all<OutlinedBorder>(
                                   const RoundedRectangleBorder(
                                       borderRadius: BorderRadius.all(
@@ -222,7 +229,7 @@ class BasicInfoItem extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: onSurfaceDividerMedium),
+            border: Border.all(color: onSurfaceDividerMedium, width: 0.5),
             color: Colors.white.withOpacity(0.5),
           ),
           padding: const EdgeInsets.all(8.0),
@@ -283,7 +290,7 @@ class CheckForMotherItem extends StatelessWidget {
           color: Colors.white.withOpacity(0.5),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: onSurfaceDividerMedium,
+            color: onSurfaceDividerMedium, width: 0.5
           ),
         ),
         child: Padding(

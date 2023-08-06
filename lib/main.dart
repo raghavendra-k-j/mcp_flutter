@@ -7,10 +7,9 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mcp_app/database/data.dart';
-import 'package:mcp_app/ml/search_command_detector.dart';
 import 'package:mcp_app/screens/home/view.dart';
+import 'package:mcp_app/translation/translations.dart';
 import 'package:mcp_app/values/colors.dart';
-
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,12 +25,15 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
+      translations: Messages(),
+      locale: const Locale('en', 'IN'),
+      fallbackLocale: const Locale('kn', 'IN'),
       debugShowCheckedModeBanner: false,
       title: 'MCP App',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
             seedColor: primary,
-            // secondary: secondary
+            secondary: secondary
         ),
         useMaterial3: false,
         textTheme: GoogleFonts.sourceSans3TextTheme(),

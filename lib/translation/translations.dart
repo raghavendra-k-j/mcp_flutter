@@ -1,0 +1,51 @@
+import 'package:get/get.dart';
+
+class Messages extends Translations {
+  @override
+  Map<String, Map<String, String>> get keys => {
+    'en_IN': {
+      "new_registration" : "New Registration",
+      'mother_name': 'Wife\'s Name',
+      'mother_mobile': 'Wife\'s Mobile',
+      'mother_age': 'Wife\'s Age',
+      'father_name': 'Husband\'s Name',
+      'father_mobile': 'Husband\'s Mobile',
+      'address': 'Address',
+      'mctc_or_rch_id': 'MCTC/RCH ID',
+      'hemoglobin': 'Hemoglobin',
+      'blood_pressure': 'Blood Pressure',
+      'diabetes': 'Diabetes',
+      'anemia': 'Anemia',
+      'bp': 'BP',
+      'thyroid': 'Thyroid',
+      'last_menstrual_period': 'Last Menstrual Period',
+      'estimated_delivery_date': 'Estimated Delivery Date',
+      'bank_name': 'Bank Name',
+      'branch_name': 'Branch Name',
+      'account_number': 'Account Number',
+      'ifsc_code': 'IFSC Code',
+    },
+    'kn_IN': {
+      "new_registration" : "ಹೊಸ ನೋಂದಣಿ",
+      'mother_name': 'ತಾಯಿಯ ಹೆಸರು',
+      'mother_mobile': 'ತಾಯಿಯ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ',
+      'mother_age': 'ತಾಯಿಯ ವಯಸ್ಸು',
+      'father_name': 'ತಂದೆಯ ಹೆಸರು',
+      'father_mobile': 'ತಂದೆಯ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ',
+      'address': 'ವಿಳಾಸ',
+      'mctc_or_rch_id': 'MCTC/RCH ID',
+      'hemoglobin': 'ಹೀಮೊಗ್ಲೋಬಿನ್',
+      'blood_pressure': 'ಬಿಪಿ',
+      'diabetes': 'ಡಯಾಬಿಟೀಸ್',
+      'anemia': 'ಅನೀಮಿಯಾ',
+      'bp': 'ಬಿಪಿ',
+      'thyroid': 'ಥೈರಾಯ್ಡ್',
+      'last_menstrual_period': 'Last Menstrual Period',
+      'estimated_delivery_date': 'Estimated Delivery Date',
+      'bank_name': 'ಬ್ಯಾಂಕ್ ಹೆಸರು',
+      'branch_name': 'ಶಾಖಾ ಹೆಸರು',
+      'account_number': 'ಖಾತೆ ಸಂಖ್ಯೆ',
+      'ifsc_code': 'IFSC Code',
+    },
+  };
+}
